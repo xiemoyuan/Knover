@@ -127,6 +127,7 @@ def multi_head_attention(queries,
     q, k, v = __compute_qkv(queries, keys, values, n_head, d_key, d_value)
 
     if cache is not None:  # use cache and concat time steps
+        # Here!!!
         # Since the inplace reshape in __split_heads changes the shape of k and
         # v, which is the cache input for next time step, reshape the cache
         # input from the previous time step first.
@@ -136,11 +137,13 @@ def multi_head_attention(queries,
         select_k = layers.reshape(select_k, shape=[0, 0, d_key * n_head])
         select_v = layers.reshape(select_v, shape=[0, 0, d_value * n_head])
         if store:
+            # Here!!!
             k = layers.concat([select_k, k], axis=1) 
             v = layers.concat([select_v, v], axis=1)
             layers.assign(k, cache["k"])
             layers.assign(v, cache["v"])
         else:
+            import sys; print();print(__file__, sys._getframe().f_lineno)
             #k = select_k
             #v = select_v
             tmp_k = layers.concat([select_k, k[:, :1]], axis=1)
@@ -266,6 +269,7 @@ def encoder_layer(input,
     with the pre_process_layer / post_process_layer to add residual connection,
     layer normalization and droput.
     """
+    # 可以用 paddle.nn.MultiHeadAttention 代替
     attn_output = multi_head_attention(
         pre_process_layer(
             input,
@@ -345,10 +349,12 @@ def encoder(enc_input,
     checkpoints = []
     names = []
     if param_share == "inner_share":
+        import sys; print();print(__file__, sys._getframe().f_lineno)
         for _ in range(n_layer // n_layer_per_block):
             for i in range(n_layer_per_block):
                 names.append(name + "_layer_" + str(i))
     else:
+        import sys; print();print(__file__, sys._getframe().f_lineno)
         for i in range(n_layer // n_layer_per_block):
             for _ in range(n_layer_per_block):
                 names.append(name + "_layer_" + str(i))

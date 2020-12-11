@@ -172,8 +172,10 @@ class Plato(UnifiedTransformer):
                 name=self.latent_emb_name, initializer=self.param_initializer))
 
         if is_infer:
+            import sys; print();print(__file__, sys._getframe().f_lineno)
             latent_id = inputs["latent_id"]
             weights = layers.one_hot(latent_id, self.latent_type_size)
+            print(latent_id.shape, weights.shape)
         else:
             logits, recognition_checkpoints = self._recognition_network(
                 token_ids=inputs["token_ids"],
@@ -185,7 +187,10 @@ class Plato(UnifiedTransformer):
             weights = self._gumbel_softmax(logits)
             outputs["checkpoints"] = recognition_checkpoints
 
+        # [-1, 1024]
         latent_emb = layers.matmul(x=weights, y=latent_embeddings, transpose_y=True)
+        import sys; print();print(__file__, sys._getframe().f_lineno)
+        print(latent_emb.shape)
         outputs["enc_out"], generation_checkpoints = self._generation_network(
             token_ids=inputs["token_ids"],
             type_ids=inputs["type_ids"],
@@ -265,6 +270,7 @@ class Plato(UnifiedTransformer):
         Run one inference step.
         """
         if self.do_generation:
+            import sys; print(__file__, sys._getframe().f_lineno)
             batch_size = len(inputs["data_id"])
             new_bsz = batch_size * self.latent_type_size
             inputs = {

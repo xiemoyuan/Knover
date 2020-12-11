@@ -53,6 +53,9 @@ def interact(args):
     task = DialogGeneration(args)
     model = models.create_model(args, place)
 
+    print('\n\nArgs:')
+    print(json.dumps(args, indent=4))
+
     Example = namedtuple("Example", ["src", "data_id"])
     context = []
     start_info = "Enter [EXIT] to quit the interaction, [NEXT] to start a new conversation."

@@ -130,6 +130,8 @@ class UnifiedTransformer(Model):
             name="pre_encoder",
             epsilon=self.epsilon)
         if self.emb_mapping_in:
+            import sys; print();print(__file__, sys._getframe().f_lineno)
+            print('emb_mapping_in: True')
             emb_out = layers.fc(
                 input=emb_out,
                 num_flatten_dims=2,
@@ -171,12 +173,24 @@ class UnifiedTransformer(Model):
                             generation_mask,
                             aux_emb=None,
                             gather_idx=None):
+        # encode
+        # (-1, 256, 1) (-1, 256, 1) (-1, 256, 1) (-1, 257, 257) (-1, 1, 1024) (-1,)
+        # decode
+        # (-1, 1, 1) (-1, 1, 1) (-1, 1, 1) (-1, 1, 258) None (-1,)
+        import sys; print();print(__file__, sys._getframe().f_lineno)
+        print(token_ids.shape, type_ids.shape, pos_ids.shape, generation_mask.shape)
+        if aux_emb: print('aux_emb', aux_emb.shape)
+        if gather_idx: print('gather_idx', gather_idx.shape)
+        # encode (-1, 257, 1024) (-1, 16, 257, 257)
+        # decode (-1, 1, 1024) (-1, 16, 1, 258)
         emb_out, n_head_self_attn_mask = self._gen_input(
             token_ids, type_ids, pos_ids, generation_mask, aux_emb=aux_emb)
+        print(emb_out.shape, n_head_self_attn_mask.shape)
         return self._encode(
             emb_out, n_head_self_attn_mask, self.generation_caches,
             gather_idx=gather_idx)
 
+    #对比Transformer中的encoder
     def _encode(self, emb_out, n_head_self_attn_mask, caches=None, gather_idx=None):
         return encoder(
             enc_input=emb_out,
@@ -324,12 +338,16 @@ class UnifiedTransformer(Model):
                 y=fluid.default_main_program().global_block().var(
                     self.token_emb_name),
                 transpose_y=True)
+            import sys; print();print(__file__, sys._getframe().f_lineno)
+            print(seq_feat.shape, seq_trans_feat.shape, fc_out.shape)
             if self.cls_bias:
                 fc_out += layers.create_parameter(
                     shape=[self.vocab_size],
                     dtype=self.dtype,
                     attr=fluid.ParamAttr(name="mask_lm_out_fc.b_0"),
                     is_bias=True)
+                import sys; print();print(__file__, sys._getframe().f_lineno)
+                print(fc_out.shape)
         else:
             seq_out_bias_attr = fluid.ParamAttr(name="mask_lm_out_fc.b_0") if self.cls_bias else False
             fc_out = layers.fc(input=seq_trans_feat,
@@ -377,6 +395,7 @@ class UnifiedTransformer(Model):
         Run model inference.
         """
         if self.do_generation:
+            import sys; print(); print(__file__, sys._getframe().f_lineno)
             return self.generator.inference(self, inputs, outputs)
         else:
             raise NotImplementedError
@@ -387,11 +406,29 @@ class UnifiedTransformer(Model):
         """
         batch_size = len(inputs["data_id"])
         inputs["parent_idx"] = np.array(range(batch_size), dtype="int64")
+        """
+        import sys; print(__file__, sys._getframe().f_lineno)
+        for key in inputs:
+            if key in ['init_score', 'tgt_ids', 'tgt_pos']:
+                print(key, np.array(inputs[key]).shape)
+            else:
+                print(key, inputs[key].shape)
+        for key in inputs:
+            if key in ['init_score', 'tgt_ids', 'tgt_pos', 'tgt_generation_mask', 'pos_ids']:
+                print(key, inputs[key])
+        import pickle
+        with open('plato-2/output/inputs.pickle', 'wb') as fout:
+            pickle.dump(inputs, fout, protocol=2)
+        #"""
+
         outputs = self._execute(
             self.infer_program,
             self._get_feed(inputs, is_infer=True),
             self.infer_fetch_dict,
             return_numpy=False)
+        import sys; print(__file__, sys._getframe().f_lineno)
+        for key in outputs:
+            print(key, outputs[key])
 
         predictions = []
         data_id_list = np.array(outputs["data_id"]).reshape(-1).tolist()
@@ -411,6 +448,11 @@ class UnifiedTransformer(Model):
                 info["context_token_ids"] = token_ids
                 info["response_token_ids"] = seq_ids_np[sub_start:sub_end].tolist()
                 predictions.append(info)
+        import sys; print(__file__, sys._getframe().f_lineno)
+        for i, info in enumerate(predictions):
+            print(i)
+            for key in info:
+                print(key, info[key])
         return predictions
 
     def infer_step(self, inputs):
@@ -418,13 +460,16 @@ class UnifiedTransformer(Model):
         Run one inference step.
         """
         if self.do_generation:
+            import sys; print(__file__, sys._getframe().f_lineno)
             if self.generator.num_samples:
+                import sys; print(__file__, sys._getframe().f_lineno)
                 inputs = {
                     name: repeat_array_or_tensor(array_or_tensor, self.place, self.generator.num_samples)
                     for name, array_or_tensor in inputs.items()
                 }
 
             if self.mem_efficient:
+                import sys; print(__file__, sys._getframe().f_lineno)
                 predictions = []
                 for idx in range(0, len(inputs["data_id"]), self.batch_size):
                     part_inputs = {
@@ -434,9 +479,11 @@ class UnifiedTransformer(Model):
                     part_outputs = self._run_generation(part_inputs)
                     predictions.extend(part_outputs)
             else:
+                import sys; print(__file__, sys._getframe().f_lineno)
                 predictions = self._run_generation(inputs)
             return predictions
         else:
+            import sys; print(__file__, sys._getframe().f_lineno)
             return self._execute(
                 self.infer_program,
                 self._get_feed(inputs, is_infer=True),

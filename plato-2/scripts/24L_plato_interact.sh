@@ -1,7 +1,7 @@
 #!/bin/bash
 set -eux
 
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=7
 
 # change to Knover working directory
 SCRIPT=`realpath "$0"`

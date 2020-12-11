@@ -109,10 +109,13 @@ class Generator(object):
         scores = layers.array_write(inputs["init_score"], step_idx)
         tgt_generation_mask = layers.array_write(inputs["tgt_generation_mask"], step_idx)
         parent_idx = inputs["parent_idx"]
+        import sys; print();print(__file__, sys._getframe().f_lineno)
+        print(ids.shape, pos_biases.shape, scores.shape, tgt_generation_mask.shape)
 
         if self.decoding_strategy == "beam_search":
             beam_size = self.beam_size
         else:
+            import sys; print();print(__file__, sys._getframe().f_lineno)
             beam_size = 1
 
         eos_penalty = np.zeros(self.vocab_size, dtype="float32")
@@ -122,6 +125,7 @@ class Generator(object):
         token_penalty = np.zeros(self.vocab_size, dtype="float32")
         token_penalty[self.unk_id] = -1e9
         if self.mask_id >= 0:
+            import sys; print();print(__file__, sys._getframe().f_lineno)
             token_penalty[self.mask_id] = -1e9
         token_penalty = layers.assign(token_penalty)
 
@@ -137,6 +141,8 @@ class Generator(object):
 
             tmp_tgt_generation_mask = layers.array_read(tgt_generation_mask, i=step_idx)
             dtype = tmp_tgt_generation_mask.dtype
+            import sys; print();print(__file__, sys._getframe().f_lineno)
+            print(pre_ids.shape, pre_scores.shape, pos_bias.shape, tmp_tgt_generation_mask.shape)
 
             append_mask = layers.fill_constant_batch_size_like(
                     input=pre_ids,
@@ -151,6 +157,8 @@ class Generator(object):
                     value=1,
                     shape=[-1, 1, 1],
                     dtype=pre_ids.dtype)
+            import sys; print();print(__file__, sys._getframe().f_lineno)
+            print(tmp_tgt_generation_mask.shape, pre_sent.shape)
 
             if self.continuous_position:
                 pre_pos = layers.elementwise_mul(
@@ -159,7 +167,10 @@ class Generator(object):
                         value=1,
                         shape=[-1, 1, 1],
                         dtype=pre_ids.dtype), y=step_idx, axis=0) + pos_bias
+                import sys; print();print(__file__, sys._getframe().f_lineno)
+                print(pre_pos.shape)
             else:
+                import sys; print();print(__file__, sys._getframe().f_lineno)
                 pre_pos = layers.elementwise_mul(
                     x=layers.fill_constant_batch_size_like(
                         input=pre_mask,
@@ -174,9 +185,12 @@ class Generator(object):
                 generation_mask=tmp_tgt_generation_mask,
                 gather_idx=parent_idx)
             logits = model._calc_logits(dec_out)
+            import sys; print();print(__file__, sys._getframe().f_lineno)
+            print(dec_out.shape, logits.shape)
 
             # ignore unk and mask token
             if self.ignore_unk:
+                import sys; print();print(__file__, sys._getframe().f_lineno)
                 logits = layers.elementwise_add(logits, token_penalty, axis=1)
 
             # min dec length
@@ -188,14 +202,16 @@ class Generator(object):
                 """No penalty."""
                 return logits
             logits = layers.case([(min_len_cond, min_len_penalty)], default=no_penalty)
-
+            #logits = layers.Print(logits, message='logits:')
             # get probs
             probs = layers.softmax(logits / self.temperature)
 
             if self.decoding_strategy == "beam_search":
+                import sys; print();print(__file__, sys._getframe().f_lineno)
                 topk_scores, topk_indices = layers.topk(
                     input=probs, k=beam_size)
             else:
+                import sys; print();print(__file__, sys._getframe().f_lineno)
                 if self.decoding_strategy.startswith("sampling"):
                     sampling_ids = layers.sampling_id(probs, dtype="int")
                 elif self.decoding_strategy.startswith("topk_sampling"):
@@ -208,6 +224,8 @@ class Generator(object):
                     old_probs = probs
                     probs = probs * ge_cond / layers.reduce_sum(topk_probs, dim=-1, keep_dim=True)
                     sampling_ids = layers.sampling_id(probs, dtype="int")
+                    import sys; print();print(__file__, sys._getframe().f_lineno)
+                    print(topk_probs.shape, old_probs.shape, probs.shape, sampling_ids.shape)
                     probs = old_probs
                 elif self.decoding_strategy.startswith("topp_sampling"):
                     sorted_probs, sorted_idx = layers.argsort(probs, descending=True)
@@ -226,19 +244,22 @@ class Generator(object):
                     old_probs = probs
                     candidate_probs = sorted_probs * lt_cond
                     probs = candidate_probs / layers.reduce_sum(candidate_probs, dim=-1, keep_dim=True)
-                    sampling_ids = layers.sampling_id(probs, dtype="int")
+                    sampling_ids = layers.sampling_id(probs, dtype="int", seed=2019)
                     sampling_ids = layers.index_sample(sorted_idx, layers.unsqueeze(sampling_ids, [1]))
                     sampling_ids = layers.squeeze(sampling_ids, [1])
                     probs = old_probs
                 else:
                     raise ValueError(self.decoding_strategy)
 
+                #sampling_ids = layers.Print(sampling_ids, message='samling_ids:')
                 sampling_scores = layers.one_hot(
                     layers.unsqueeze(sampling_ids, [1]), probs.shape[1]
                 )
                 sampling_scores = sampling_scores * probs - (1 - sampling_scores) * 1e3
                 topk_scores, topk_indices = layers.topk(
                     input=sampling_scores, k=1)
+                import sys; print();print(__file__, sys._getframe().f_lineno)
+                print(sampling_scores.shape, topk_scores.shape, topk_indices.shape)
 
             pre_len = layers.cast(step_idx, "float32")
             layers.increment(x=step_idx, value=1.0, in_place=True)
@@ -248,6 +269,8 @@ class Generator(object):
             if self.length_average:
                 accu_scores = layers.elementwise_add(
                     x=layers.log(topk_scores), y=pre_scores * pre_len, axis=0) / cur_len
+                import sys; print();print(__file__, sys._getframe().f_lineno)
+                print(accu_scores.shape)
             elif self.length_penalty > 0:
                 pre_lp = layers.pow((5 + pre_len) / 6, self.length_penalty)
                 cur_lp = layers.pow((5 + cur_len) / 6, self.length_penalty)
@@ -266,6 +289,8 @@ class Generator(object):
                 beam_size=beam_size,
                 end_id=self.eos_id,
                 return_parent_idx=True)
+            import sys; print();print(__file__, sys._getframe().f_lineno)
+            print(selected_ids.shape, selected_scores.shape, gather_idx.shape, pre_mask.shape, pos_bias.shape)
 
             layers.array_write(selected_ids, i=step_idx, array=ids)
             layers.array_write(selected_scores, i=step_idx, array=scores)

@@ -81,19 +81,33 @@ class Model(ABC):
         Build train_program, eval_program and inference_program. Only use in static graph mode.
         """
         if self.run_infer:
+            import sys; print(__file__, sys._getframe().f_lineno)
             self.startup_program = fluid.Program()
             # build infer program
             self.infer_program = fluid.Program()
             with fluid.program_guard(self.infer_program, self.startup_program):
                 with fluid.unique_name.guard():
                     self.infer_feed_dict = inputs = self._get_feed_dict(is_infer=True)
+                    print('\nnetwork start!')
+                    print('\ninputs:')
+                    for key in inputs:
+                        print(key, inputs[key].shape)
                     outputs = self.forward(inputs, is_infer=True)
+                    print('\noutputs:')
+                    for key in outputs:
+                        print(key, outputs[key].shape)
+                    print('\nencoder over!')
                     predictions = self.infer(inputs, outputs)
+                    print('\npredictions:')
+                    for key in predictions:
+                        print(key, predictions[key].shape)
+                    print('\ndecoder over!')
                     self.infer_fetch_dict = predictions
             self.infer_program = self.infer_program.clone(for_test=True)
 
             self.program = self.infer_program
         else:
+            import sys; print(__file__, sys._getframe().f_lineno)
             if self.is_distributed:
                 exec_strategy = fluid.ExecutionStrategy()
                 exec_strategy.use_experimental_executor = True
@@ -137,8 +151,10 @@ class Model(ABC):
 
         self.exe.run(self.startup_program)
         if self.init_pretraining_params != "":
+            import sys; print();print(__file__, sys._getframe().f_lineno)
             init_pretraining_params(self.exe, self.init_pretraining_params, self.program)
         elif self.init_checkpoint != "":
+            import sys; print();print(__file__, sys._getframe().f_lineno)
             init_checkpoint(self.exe, self.init_checkpoint, self.program)
         return
 

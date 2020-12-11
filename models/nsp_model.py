@@ -59,6 +59,7 @@ class NSPModel(UnifiedTransformer):
         return Model._get_feed(self, inputs, is_infer)
 
     def forward(self, inputs, is_infer=False):
+        import sys; print();print(__file__, sys._getframe().f_lineno)
         outputs = {}
         self.generation_caches = None
         outputs["enc_out"], self.checkpoints = self._generation_network(

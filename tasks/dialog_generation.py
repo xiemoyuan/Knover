@@ -115,9 +115,15 @@ def get_nsp_score_batch(nsp_predictor, predictions):
     args.load(args.config_path)
     if not args.mem_efficient:
         if args.num_samples:
+            # not
+            import sys; print();print(__file__, sys._getframe().f_lineno)
             args.batch_size *= args.num_samples
         if args.latent_type_size:
+            # here
+            import sys; print();print(__file__, sys._getframe().f_lineno)
             args.batch_size *= args.latent_type_size
+        import sys; print();print(__file__, sys._getframe().f_lineno)
+        print(args.batch_size)
     args.tokenized_input = True
     reader = NSPReader(args)
 
@@ -144,6 +150,10 @@ def get_nsp_score_batch(nsp_predictor, predictions):
 
     steps = 0
     for data in generator():
+        import sys; print();print(__file__, sys._getframe().f_lineno)
+        for key in data:
+            print(key, data[key].shape)
+        print(data['data_id'])
         outputs = nsp_predictor(data)
         for probs, data_id in zip(outputs[0], outputs[-1]):
             data_id = data_id[0]
@@ -183,11 +193,14 @@ class DialogGeneration(Task):
         self.do_generation = args.do_generation
         self.is_cn = args.is_cn
         if args.model == "Plato":
+            import sys; print();print(__file__, sys._getframe().f_lineno)
             self.reader = PlatoReader(args)
         else:
+            import sys; print();print(__file__, sys._getframe().f_lineno)
             self.reader = DialogReader(args)
 
         if args.nsp_inference_model_path:
+            import sys; print();print(__file__, sys._getframe().f_lineno)
             self.nsp_predictor = create_predictor(args.nsp_inference_model_path, args.is_distributed)
             self.nsp_attention_style = args.nsp_attention_style
         else:
@@ -215,7 +228,26 @@ class DialogGeneration(Task):
                 get_in_turn_repetition(pred_tokens, self.is_cn),
                 get_in_turn_repetition(pred_token_ids))
         if self.nsp_predictor is not None:
+            import sys; print();print(__file__, sys._getframe().f_lineno)
             get_nsp_score_batch(self.nsp_predictor, predictions)
+
+        import sys; print();print(__file__, sys._getframe().f_lineno)
+        for i, info in enumerate(predictions):
+            print(i)
+            """
+            data_id 0
+            decode_score -1.7831968069076538
+            context_token_ids [1, 2437, 2270, 126, 719, 7808, 2270, 222, 7820, 7801, 179, 1827, 2, 562, 330, 2270, 1875, 62, 123, 2630, 7843, 6, 7843, 7804, 730, 55, 3113, 121, 179, 12, 1786, 1683, 2, 435, 7820, 7801, 12, 904, 1827, 2]
+            response_token_ids [1, 3065, 2715, 7813, 865, 55, 4, 41, 163, 71, 42, 420, 55, 4, 41, 163, 71, 5793, 2270, 129, 420, 256, 328, 1567, 293, 2226, 47, 55, 1683, 2]
+            context Hi , Becky , what's up ? [SEP] Not much , except that my mother-in-law is driving me up the wall . [SEP] What's the problem ?
+            response Her grandfather is a nurse and she is a nurse herself , so she has been told how terrible it is .
+            num_token 28
+            cross_turn_repetition 0.0
+            in_turn_repetition 1.0
+            nsp_score 0.9875060319900513
+            """
+            for key in info:
+                print(key, info[key])
 
         group = defaultdict(list)
         for info in predictions:
@@ -237,6 +269,11 @@ class DialogGeneration(Task):
             keep_attr = ["data_id", "score", "response"]
             pred = {k: pred[k] for k in keep_attr}
             predictions.append(pred)
+        import sys; print();print(__file__, sys._getframe().f_lineno)
+        for i, info in enumerate(predictions):
+            print(i)
+            for key in info:
+                print(key, info[key])
         return predictions
 
     def _post_process_scoring_output(self, predictions):
@@ -244,6 +281,7 @@ class DialogGeneration(Task):
 
     def _post_process_infer_output(self, predictions):
         if self.do_generation:
+            import sys; print(); print(__file__, sys._getframe().f_lineno)
             return self._post_process_generation_output(predictions)
         else:
             return self._post_process_scoring_output(predictions)
