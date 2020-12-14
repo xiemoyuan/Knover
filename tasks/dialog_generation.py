@@ -125,6 +125,9 @@ def get_nsp_score_batch(nsp_predictor, predictions):
         import sys; print();print(__file__, sys._getframe().f_lineno)
         print(args.batch_size)
     args.tokenized_input = True
+
+    import json;print(json.dumps(args, indent=2))
+
     reader = NSPReader(args)
 
     def __reader__():
@@ -153,7 +156,8 @@ def get_nsp_score_batch(nsp_predictor, predictions):
         import sys; print();print(__file__, sys._getframe().f_lineno)
         for key in data:
             print(key, data[key].shape)
-        print(data['data_id'])
+            #rint(data[key])
+            
         outputs = nsp_predictor(data)
         for probs, data_id in zip(outputs[0], outputs[-1]):
             data_id = data_id[0]
@@ -183,8 +187,10 @@ class DialogGeneration(Task):
 
         args, _ = parser.parse_known_args()
         if args.model == "Plato":
+            import sys; print();print(__file__, sys._getframe().f_lineno)
             PlatoReader.add_cmdline_args(parser)
         else:
+            import sys; print();print(__file__, sys._getframe().f_lineno)
             DialogReader.add_cmdline_args(parser)
         return group
 
@@ -231,10 +237,11 @@ class DialogGeneration(Task):
             import sys; print();print(__file__, sys._getframe().f_lineno)
             get_nsp_score_batch(self.nsp_predictor, predictions)
 
+        """
         import sys; print();print(__file__, sys._getframe().f_lineno)
         for i, info in enumerate(predictions):
             print(i)
-            """
+            ###
             data_id 0
             decode_score -1.7831968069076538
             context_token_ids [1, 2437, 2270, 126, 719, 7808, 2270, 222, 7820, 7801, 179, 1827, 2, 562, 330, 2270, 1875, 62, 123, 2630, 7843, 6, 7843, 7804, 730, 55, 3113, 121, 179, 12, 1786, 1683, 2, 435, 7820, 7801, 12, 904, 1827, 2]
@@ -245,9 +252,10 @@ class DialogGeneration(Task):
             cross_turn_repetition 0.0
             in_turn_repetition 1.0
             nsp_score 0.9875060319900513
-            """
+            ###
             for key in info:
                 print(key, info[key])
+        """
 
         group = defaultdict(list)
         for info in predictions:
@@ -274,6 +282,7 @@ class DialogGeneration(Task):
             print(i)
             for key in info:
                 print(key, info[key])
+            print('\n')
         return predictions
 
     def _post_process_scoring_output(self, predictions):

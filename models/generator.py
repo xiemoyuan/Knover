@@ -223,7 +223,7 @@ class Generator(object):
                         "float32")
                     old_probs = probs
                     probs = probs * ge_cond / layers.reduce_sum(topk_probs, dim=-1, keep_dim=True)
-                    sampling_ids = layers.sampling_id(probs, dtype="int")
+                    sampling_ids = layers.sampling_id(probs, dtype="int", seed=2)
                     import sys; print();print(__file__, sys._getframe().f_lineno)
                     print(topk_probs.shape, old_probs.shape, probs.shape, sampling_ids.shape)
                     probs = old_probs
@@ -244,7 +244,7 @@ class Generator(object):
                     old_probs = probs
                     candidate_probs = sorted_probs * lt_cond
                     probs = candidate_probs / layers.reduce_sum(candidate_probs, dim=-1, keep_dim=True)
-                    sampling_ids = layers.sampling_id(probs, dtype="int", seed=2019)
+                    sampling_ids = layers.sampling_id(probs, dtype="int")
                     sampling_ids = layers.index_sample(sorted_idx, layers.unsqueeze(sampling_ids, [1]))
                     sampling_ids = layers.squeeze(sampling_ids, [1])
                     probs = old_probs

@@ -406,29 +406,40 @@ class UnifiedTransformer(Model):
         """
         batch_size = len(inputs["data_id"])
         inputs["parent_idx"] = np.array(range(batch_size), dtype="int64")
-        """
+        #"""
         import sys; print(__file__, sys._getframe().f_lineno)
         for key in inputs:
             if key in ['init_score', 'tgt_ids', 'tgt_pos']:
                 print(key, np.array(inputs[key]).shape)
             else:
                 print(key, inputs[key].shape)
+        #"""
+        """
         for key in inputs:
             if key in ['init_score', 'tgt_ids', 'tgt_pos', 'tgt_generation_mask', 'pos_ids']:
                 print(key, inputs[key])
+        """
+        """
         import pickle
         with open('plato-2/output/inputs.pickle', 'wb') as fout:
             pickle.dump(inputs, fout, protocol=2)
-        #"""
+        """
+        """
+        import pickle
+        with open('plato-2/output/inputs.pickle', 'rb') as fin:
+            inputs = pickle.load(fin)
+        """
 
         outputs = self._execute(
             self.infer_program,
             self._get_feed(inputs, is_infer=True),
             self.infer_fetch_dict,
             return_numpy=False)
+        """
         import sys; print(__file__, sys._getframe().f_lineno)
         for key in outputs:
             print(key, outputs[key])
+        """
 
         predictions = []
         data_id_list = np.array(outputs["data_id"]).reshape(-1).tolist()
@@ -448,11 +459,16 @@ class UnifiedTransformer(Model):
                 info["context_token_ids"] = token_ids
                 info["response_token_ids"] = seq_ids_np[sub_start:sub_end].tolist()
                 predictions.append(info)
+        """
         import sys; print(__file__, sys._getframe().f_lineno)
         for i, info in enumerate(predictions):
             print(i)
             for key in info:
                 print(key, info[key])
+        import pickle
+        with open('plato-2/output/plato_outputs.pickle', 'wb') as fout:
+            pickle.dump(predictions, fout, protocol=2)
+        """
         return predictions
 
     def infer_step(self, inputs):
