@@ -87,6 +87,7 @@ def infer(args):
             time_cost = timer.pass_time
             print(f"\tstep: {step}, time: {time_cost:.3f}, "
                   f"speed: {step / time_cost:.3f} steps/s")
+        break
 
     time_cost = timer.pass_time
     print(f"[infer] steps: {step} time cost: {time_cost}, "
