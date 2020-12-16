@@ -143,6 +143,23 @@ def init_pretraining_params(exe,
         predicate=existed_params)
     print(f"Load pretraining parameters from {pretraining_params_path}.")
 
+    #"""
+    filename = pretraining_params_path.split('/')[-1].lower()
+    var_list = list(filter(existed_params, main_program.list_vars()))
+    var_list = [var.name for var in var_list]
+    print(len(var_list))
+    params_dict = {}
+    for name in var_list:
+        param = fluid.global_scope().find_var(name).get_tensor()
+        params_dict[name] = np.array(param)
+        #print(name, np.array(param).shape)
+        #if name in ['mask_lm_trans_fc.w_0', 'mask_lm_trans_fc.b_0']:
+        #    print(name, param)
+    import pickle
+    with open('32L/' + filename + '_params.pickle', 'wb') as fout:
+        pickle.dump(params_dict, fout, protocol=2)
+    #"""
+
     return
 
 

@@ -1,7 +1,7 @@
 #!/bin/bash
 set -eux
 
-export CUDA_VISIBLE_DEVICES=0,1
+export CUDA_VISIBLE_DEVICES=1
 
 # change to Knover working directory
 SCRIPT=`realpath "$0"`
@@ -29,7 +29,7 @@ export init_params=./${model_size}/Plato
 export infer_file=./data/dailydialog_test_60.tsv
 export save_path=./plato-2/output
 export output_name="response"
-export batch_size=10
+export batch_size=1
 export infer_args="\
     --do_generation true \
     --nsp_inference_model_path ${nsp_init_params} \
